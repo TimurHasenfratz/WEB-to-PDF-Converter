@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web To PDF Converter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+ 
+  <form id="pdfForm">
+    <h1>Web To PDF Converter</h1>
+    <label for="url">Enter URL:</label>
+    <input type="text" id="url" name="url" placeholder="https://example.com" required>
+    <br>
+    
+    <p>Custom Css Changes</p>
+    <div id="basicCss" class="css-panel">
+    
+      <button type="button" onclick="addCss('nav { display:none!important; }')">HideNavbar</button>
+      <button type="button" onclick="addCss('body { width: 100%; max-width:1200px!important; zoom:80%; !important}')">BodyFix</button>
+      <button type="button" onclick="addCss('img { display:block!important; }')">imgFix</button>
+      <button type="button" onclick="addCss('* { display:block!important; }')">showAll</button>
+      <button type="button" onclick="addCss('* { text-align:center; }')">centerAllText</button>
+      <!-- Add more basic CSS classes here -->
+    </div>
+    <br>
+    <label style="color: white;" for="css">Add Custom CSS</label>
+    <textarea id="css" name="css" rows="10" cols="50">
+      @media print {
+        .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        body::after { content: ""; display: block; page-break-after: always; }
+        nav + * { page-break-before: always; }
+        body { zoom: 40%; }
+      }
+    </textarea>
+    <br>
+    <label style="color: white;" for="js">Add JavaScript:</label>
+    <textarea id="js" name="js" rows="4" cols="50"></textarea>
+    <br>
+    <button type="button" onclick="generatePDF()">Generate PDF</button>
+    <br>
+    <button  style="height: 30px; padding: 1.5rem;">Download PDF</button>
+  </form>
+
+  <div id="preview" style="height: 600px; overflow-y: scroll; margin-top: 5rem;">
+    <h2>PDF Preview</h2>
+    <img id="previewImage" src="" alt="PDF Preview" >
+
+    <br>
+    <a id="downloadLink" href="#" download="output.pdf" style="display:none;">Download PDF</a>
+  
+  </div>
+ 
+
+  <script>
+    function addCss(css) {
+      document.getElementById('css').value += css + '\n';
+      generatePreview();
+    }
+
+    async function generatePreview() {
+      const url = document.getElementById('url').value;
+      const css = document.getElementById('css').value;
+      const js = document.getElementById('js').value;
+
+      if (url) {
+        try {
+          const response = await fetch('/generate-preview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url, css, js })
+          });
+
+          const data = await response.json();
+          if (data.previewImage) {
+            const previewImage = document.getElementById('previewImage');
+            previewImage.src = data.previewImage;
+          }
+        } catch (error) {
+          console.error('Error generating live preview:', error);
+        }
+      }
+    }
+
+    async function generatePDF() {
+      const url = document.getElementById('url').value;
+      const css = document.getElementById('css').value;
+      const js = document.getElementById('js').value;
+
+      try {
+        const response = await fetch('/generate-pdf', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url, css, js })
+        });
+
+        const data = await response.json();
+        if (data.previewImage && data.pdfPath) {
+          const previewImage = document.getElementById('previewImage');
+          const downloadLink = document.getElementById('downloadLink');
+          previewImage.src = data.previewImage;
+          downloadLink.href = data.pdfPath;
+          downloadLink.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+      }
+    }
+
+    const form = document.getElementById('pdfForm');
+    form.addEventListener('input', generatePreview);
+  </script>
+</body>
+</html>
